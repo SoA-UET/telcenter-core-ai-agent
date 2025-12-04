@@ -36,11 +36,35 @@ class GeminiService:
         Raises:
             Exception: If generation fails
         """
+        IMPOSSIBLE_TEXT = "IMPOSSIBLE"
+        IMPOSSIBLE_DETECTION_WINDOW = len(IMPOSSIBLE_TEXT)
+
+        first_buffer = ""
+        reading_first_buffer = True
+
         try:
             response = self.model.generate_content(prompt, stream=True)
             for chunk in response:
                 if chunk.text:
-                    yield chunk.text
+                    if not reading_first_buffer:
+                        yield chunk.text
+                    else:
+                        first_buffer += chunk.text
+                        if len(first_buffer) >= IMPOSSIBLE_DETECTION_WINDOW:
+                            reading_first_buffer = False
+                            if IMPOSSIBLE_TEXT in first_buffer:
+                                yield "IMPOSSIBLE"
+                                return
+                            else:
+                                yield first_buffer
+
+            # Handle case where response ends before filling the first buffer
+            if reading_first_buffer:
+                if IMPOSSIBLE_TEXT in first_buffer:
+                    yield "IMPOSSIBLE"
+                    return
+                else:
+                    yield first_buffer
         except Exception as e:
             raise Exception(f"Gemini generation error: {str(e)}")
     
