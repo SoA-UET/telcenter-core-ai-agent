@@ -145,7 +145,7 @@ Request body format:
     "method": "handle_inquiry",
     "params": {
         "inquiry": "Inquiry content, e.g. Gói cước này giá bao nhiêu vậy?",
-        "history": "The chat history",
+        "history": "The chat history"
     },
     "id": "the request id to match with response"
 }

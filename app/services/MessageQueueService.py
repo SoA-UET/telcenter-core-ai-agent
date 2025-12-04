@@ -47,7 +47,7 @@ class MessageQueueService:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except Exception as e:
                 print(f"[MessageQueueService] Error processing message: {e}")
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(queue=queue_name, on_message_callback=_internal_callback)
