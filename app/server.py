@@ -94,6 +94,16 @@ class Controller:
                     }
                 }
                 self.mq.publish_message(self.response_queue_name, response)
+            
+            # Termination
+            termination_response = {
+                "id": request_id,
+                "result": {
+                    "status": "success",
+                    "content": ""
+                }
+            }
+            self.mq.publish_message(self.response_queue_name, termination_response)
         
         except Exception as e:
             # Error occurred, send error response
