@@ -101,6 +101,20 @@ Or:
 uv run python app/__main__.py
 ```
 
+## Docker
+
+```sh
+cp .env.example .env.docker.local
+# then edit the new file.
+# To access localhost, replace 'localhost'
+# or '127.0.0.1' with 'host.docker.internal' or '172.17.0.1'
+
+./run-docker.sh
+```
+
+If RabbitMQ reports `ACCESS_REFUSED`,
+follow [the instructions here](https://stackoverflow.com/a/29177677/13680015).
+
 ## API
 
 ### Request Format
