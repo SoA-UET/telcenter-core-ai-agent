@@ -48,66 +48,78 @@ class AIAgent:
             Exception: If any step in the process fails, with special "FORWARD" message
                       for cases where the agent cannot answer
         """
-        # Step 1-2: Check if inquiry is telecom-related
-        is_telecom = self.phobert_client.infer(inquiry)
-        
-        if not is_telecom:
-            # Not telecom-related, use trivial prompt
-            prompt = self.prompt_loader.format(
-                "trivial.prompt.txt",
-                chat_history=history,
-                query=inquiry
-            )
+        try:
+            # Step 1-2: Check if inquiry is telecom-related
+            print(f"[AIAgent] Checking if inquiry is telecom-related: {inquiry}")
+            is_telecom = self.phobert_client.infer(inquiry)
             
-            # Generate and yield response tokens
-            for token in self.gemini_service.generate_stream(prompt):
-                yield token
-            return
-        
-        # Step 3: Check if reasoning is needed
-        reasoning_mode = self.reasoning_client.infer(inquiry)
-        
-        context = None
-        
-        # Step 4-5: Get context from RAG
-        if reasoning_mode == "reasoning_needed":
-            # Try RAG reasoning first
-            try:
-                context = self.rag_client.query_reasoning(history, inquiry)
-            except Exception as e:
-                # Fallback to vectorstore
-                print(f"[AIAgent] RAG reasoning failed, falling back to vectorstore: {e}")
+            if not is_telecom:
+                print(f"[AIAgent] Inquiry is not telecom-related, using trivial prompt.")
+                prompt = self.prompt_loader.format(
+                    "trivial.prompt.txt",
+                    chat_history=history,
+                    query=inquiry
+                )
+                
+                print(f"[AIAgent] Generating response using trivial prompt.")
+                for token in self.gemini_service.generate_stream(prompt):
+                    yield token
+                return
+            
+            # Step 3: Check if reasoning is needed
+            print(f"[AIAgent] Inquiry is telecom-related, checking if reasoning is needed.")
+            reasoning_mode = self.reasoning_client.infer(inquiry)
+            
+            context = None
+            
+            # Step 4-5: Get context from RAG
+            if reasoning_mode == "reasoning_needed":
+                # Try RAG reasoning first
+                print(f"[AIAgent] Reasoning needed, querying RAG reasoning.")
+                try:
+                    context = self.rag_client.query_reasoning(history, inquiry)
+                except Exception as e:
+                    # Fallback to vectorstore
+                    print(f"[AIAgent] RAG reasoning failed, falling back to vectorstore: {e}")
+                    try:
+                        context = self.rag_client.query_vectordb(inquiry)
+                    except Exception as e2:
+                        # Cannot get context, must forward to human
+                        raise Exception("FORWARD")
+            else:
+                # Use vectorstore directly
+                print(f"[AIAgent] Reasoning not needed, querying RAG vectorstore.")
                 try:
                     context = self.rag_client.query_vectordb(inquiry)
-                except Exception as e2:
+                except Exception as e:
                     # Cannot get context, must forward to human
                     raise Exception("FORWARD")
-        else:
-            # Use vectorstore directly
-            try:
-                context = self.rag_client.query_vectordb(inquiry)
-            except Exception as e:
-                # Cannot get context, must forward to human
+            
+            # Step 6: Generate answer using master prompt
+            print(f"[AIAgent] Generating response using master prompt with context.")
+            prompt = self.prompt_loader.format(
+                "master.prompt.txt",
+                chat_history=history,
+                query=inquiry,
+                context=context
+            )
+            
+            # Check if LLM returns IMPOSSIBLE
+            # We need to collect the full response to check this
+            print(f"[AIAgent] Streaming response from GeminiService.")
+            full_response = ""
+            for token in self.gemini_service.generate_stream(prompt):
+                full_response += token
+                # Check if we've accumulated "IMPOSSIBLE" at the start
+                if full_response.strip().startswith("IMPOSSIBLE"):
+                    raise Exception("FORWARD")
+                yield token
+            
+            # Final check if the complete response is exactly "IMPOSSIBLE"
+            if full_response.strip() == "IMPOSSIBLE":
                 raise Exception("FORWARD")
-        
-        # Step 6: Generate answer using master prompt
-        prompt = self.prompt_loader.format(
-            "master.prompt.txt",
-            chat_history=history,
-            query=inquiry,
-            context=context
-        )
-        
-        # Check if LLM returns IMPOSSIBLE
-        # We need to collect the full response to check this
-        full_response = ""
-        for token in self.gemini_service.generate_stream(prompt):
-            full_response += token
-            # Check if we've accumulated "IMPOSSIBLE" at the start
-            if full_response.strip().startswith("IMPOSSIBLE"):
-                raise Exception("FORWARD")
-            yield token
-        
-        # Final check if the complete response is exactly "IMPOSSIBLE"
-        if full_response.strip() == "IMPOSSIBLE":
-            raise Exception("FORWARD")
+
+            print(f"[AIAgent] Response generation completed.")
+        except Exception as e:
+            print(f"[AIAgent] Exception occurred: {e}")
+            raise
