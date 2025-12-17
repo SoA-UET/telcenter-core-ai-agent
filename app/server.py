@@ -85,24 +85,29 @@ class Controller:
             token_generator = method(inquiry, history)
             
             # Stream tokens as individual responses
+            i = 0
             for token in token_generator:
                 response = {
                     "id": request_id,
                     "result": {
                         "status": "success",
-                        "content": token
+                        "content": token,
+                        "seq": i,
                     }
                 }
                 self.mq.publish_message(self.response_queue_name, response)
+                i += 1
             
             # Termination
             termination_response = {
                 "id": request_id,
                 "result": {
                     "status": "success",
-                    "content": ""
+                    "content": "",
+                    "seq": i,
                 }
             }
+
             self.mq.publish_message(self.response_queue_name, termination_response)
         
         except Exception as e:
@@ -111,7 +116,8 @@ class Controller:
                 "id": request_id,
                 "result": {
                     "status": "error",
-                    "content": str(e)
+                    "content": str(e),
+                    "seq": 0,
                 }
             }
             self.mq.publish_message(self.response_queue_name, error_response)
