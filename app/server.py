@@ -85,19 +85,19 @@ class Controller:
         try:
             token_generator = method(inquiry, history)
             
+            seq = 0
             # Stream tokens as individual responses
-            i = 0
             for token in token_generator:
                 response = {
                     "id": request_id,
                     "result": {
                         "status": "success",
                         "content": token,
-                        "seq": i,
+                        "seq": seq,
                     }
                 }
                 self.mq.publish_message(self.response_queue_name, response)
-                i += 1
+                seq += 1
             
             # Termination
             termination_response = {
@@ -105,7 +105,7 @@ class Controller:
                 "result": {
                     "status": "success",
                     "content": "",
-                    "seq": i,
+                    "seq": seq,
                 }
             }
 
@@ -113,6 +113,7 @@ class Controller:
         
         except Exception as e:
             # Error occurred, send error response
+            print(f"[AIAgentRPCServer] Exception during handling message: {e}")
             error_response = {
                 "id": request_id,
                 "result": {
