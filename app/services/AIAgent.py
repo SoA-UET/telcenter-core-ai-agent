@@ -64,6 +64,8 @@ class AIAgent:
                 print(f"[AIAgent] Generating response using trivial prompt.")
                 for token in self.gemini_service.generate_stream(prompt):
                     yield token
+                
+                print(f"[AIAgent] Trivial response generation completed.")
                 return
             
             # Step 3: Check if reasoning is needed
