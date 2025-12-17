@@ -88,16 +88,17 @@ class Controller:
             seq = 0
             # Stream tokens as individual responses
             for token in token_generator:
-                response = {
-                    "id": request_id,
-                    "result": {
-                        "status": "success",
-                        "content": token,
-                        "seq": seq,
+                if token:
+                    response = {
+                        "id": request_id,
+                        "result": {
+                            "status": "success",
+                            "content": token,
+                            "seq": seq,
+                        }
                     }
-                }
-                self.mq.publish_message(self.response_queue_name, response)
-                seq += 1
+                    self.mq.publish_message(self.response_queue_name, response)
+                    seq += 1
             
             # Termination
             termination_response = {
