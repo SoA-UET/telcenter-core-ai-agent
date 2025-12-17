@@ -27,13 +27,18 @@ class MessageQueueService:
         self.channel.queue_declare(queue=queue_name, durable=True)
 
     def publish_message(self, queue_name: str, message: dict):
+        body = json.dumps(message)
+
+        print(f"[MessageQueueService] Publishing message to {queue_name}: {body}")
+
         self.channel.basic_publish(
             exchange='',
             routing_key=queue_name,
-            body=json.dumps(message),
+            body=body,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # persistent
-            )
+            ),
+            mandatory=True,
         )
 
     def register_callback(self, queue_name: str, callback: Callable[[dict], None]):
