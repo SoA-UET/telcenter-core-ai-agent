@@ -63,6 +63,9 @@ class AIAgent:
                 
                 print(f"[AIAgent] Generating response using trivial prompt.")
                 for token in self.gemini_service.generate_stream(prompt):
+                    print(f"[AIAgent] Yielding token from trivial response: {token}")
+                    if token.strip() == "IMPOSSIBLE":
+                        raise Exception("FORWARD")
                     yield token
                 
                 print(f"[AIAgent] Trivial response generation completed.")
@@ -109,18 +112,11 @@ class AIAgent:
             # Check if LLM returns IMPOSSIBLE
             # We need to collect the full response to check this
             print(f"[AIAgent] Streaming response from GeminiService.")
-            full_response = ""
             for token in self.gemini_service.generate_stream(prompt):
-                full_response += token
-                # Check if we've accumulated "IMPOSSIBLE" at the start
-                if full_response.strip().startswith("IMPOSSIBLE"):
+                if token.strip() == "IMPOSSIBLE":
                     raise Exception("FORWARD")
                 yield token
             
-            # Final check if the complete response is exactly "IMPOSSIBLE"
-            if full_response.strip() == "IMPOSSIBLE":
-                raise Exception("FORWARD")
-
             print(f"[AIAgent] Response generation completed.")
         except Exception as e:
             print(f"[AIAgent] Exception occurred: {e}")
