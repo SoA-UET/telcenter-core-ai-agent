@@ -53,7 +53,8 @@ class Controller:
                 "id": request_id,
                 "result": {
                     "status": "error",
-                    "content": str(e)
+                    "content": str(e),
+                    "seq": 0,
                 }
             }
             self.mq.publish_message(self.response_queue_name, error_response)

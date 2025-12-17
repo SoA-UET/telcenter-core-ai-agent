@@ -46,6 +46,7 @@ class GeminiService:
             response = self.model.generate_content(prompt, stream=True)
             for chunk in response:
                 if chunk.text:
+                    print(f"[GeminiService] Received chunk: {chunk.text}")
                     if not reading_first_buffer:
                         yield chunk.text
                     else:
@@ -53,7 +54,7 @@ class GeminiService:
                         if len(first_buffer) >= IMPOSSIBLE_DETECTION_WINDOW:
                             reading_first_buffer = False
                             if IMPOSSIBLE_TEXT in first_buffer:
-                                yield "IMPOSSIBLE"
+                                yield IMPOSSIBLE_TEXT
                                 return
                             else:
                                 yield first_buffer
@@ -61,7 +62,7 @@ class GeminiService:
             # Handle case where response ends before filling the first buffer
             if reading_first_buffer:
                 if IMPOSSIBLE_TEXT in first_buffer:
-                    yield "IMPOSSIBLE"
+                    yield IMPOSSIBLE_TEXT
                     return
                 else:
                     yield first_buffer
