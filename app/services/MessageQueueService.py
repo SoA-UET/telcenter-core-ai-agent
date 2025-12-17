@@ -2,6 +2,7 @@ import json
 import pika
 from typing import Callable
 import os
+import threading
 
 class MessageQueueService:
     """
@@ -15,13 +16,15 @@ class MessageQueueService:
         self.rabbitmq_url = rabbitmq_url
 
         params = pika.URLParameters(self.rabbitmq_url)
-        params.heartbeat = 0 # turns heartbeat off
+        params.heartbeat = 60
         params.blocked_connection_timeout = 30
         self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
+        self.lock = threading.Lock()
     
     def clone(self):
-        return MessageQueueService(self.rabbitmq_url)
+        with self.lock:
+            return MessageQueueService(self.rabbitmq_url)
 
     def declare_queue(self, queue_name: str):
         self.channel.queue_declare(queue=queue_name, durable=True)
@@ -31,6 +34,7 @@ class MessageQueueService:
 
         print(f"[MessageQueueService] Publishing message to {queue_name}: {body}")
 
+        self.declare_queue(queue_name)
         self.channel.basic_publish(
             exchange='',
             routing_key=queue_name,
@@ -38,7 +42,6 @@ class MessageQueueService:
             properties=pika.BasicProperties(
                 delivery_mode=2,  # persistent
             ),
-            mandatory=True,
         )
 
     def register_callback(self, queue_name: str, callback: Callable[[dict], None]):
