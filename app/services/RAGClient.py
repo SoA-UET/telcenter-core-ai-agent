@@ -47,7 +47,7 @@ class RAGClient:
                 self.pending_requests[request_id] = message
                 self.condition.notify_all()
     
-    def _send_request_and_wait(self, method: str, params: dict | list, timeout: float = 30.0) -> Any:
+    def _send_request_and_wait(self, method: str, params: dict | list, timeout: float = 70.0) -> Any:
         """
         Send a request to RAG service and wait for response.
         
