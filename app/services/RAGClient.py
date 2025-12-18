@@ -15,7 +15,7 @@ class RAGClient:
         if mq is None:
             self.mq = MessageQueueService()
         else:
-            self.mq = mq
+            self.mq = mq.clone()
         
         self.mq.declare_queue(self.request_queue)
         self.mq.declare_queue(self.response_queue)
@@ -68,8 +68,11 @@ class RAGClient:
             "params": params,
             "id": request_id
         }
-        
-        self.mq.publish_message(self.request_queue, request)
+
+        mq = self.mq.clone()
+        mq.declare_queue(self.response_queue)
+        mq.declare_queue(self.request_queue)
+        mq.publish_message(self.request_queue, request)
         
         with self.condition:
             print(f"[RAGClient] Waiting for response to request ID {request_id}")
