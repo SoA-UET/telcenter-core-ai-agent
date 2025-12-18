@@ -39,6 +39,8 @@ class RAGClient:
     
     def _handle_response(self, message: dict):
         """Handle incoming response from RAG service."""
+        print(f"[RAGClient] Received response: {message}")
+
         request_id = message.get("id")
         if request_id:
             with self.condition:
@@ -67,8 +69,10 @@ class RAGClient:
             "id": request_id
         }
         
+        self.mq.publish_message(self.request_queue, request)
+        
         with self.condition:
-            self.mq.publish_message(self.request_queue, request)
+            print(f"[RAGClient] Waiting for response to request ID {request_id}")
             
             # Wait for response
             self.condition.wait_for(lambda: request_id in self.pending_requests, timeout=timeout)
