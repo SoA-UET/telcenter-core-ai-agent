@@ -3,6 +3,7 @@ import pika
 from typing import Callable
 import os
 import threading
+from ..utils.db import serialize_mongo_doc
 
 class MessageQueueService:
     """
@@ -16,7 +17,7 @@ class MessageQueueService:
         self.rabbitmq_url = rabbitmq_url
 
         params = pika.URLParameters(self.rabbitmq_url)
-        params.heartbeat = 60
+        params.heartbeat = 0
         params.blocked_connection_timeout = 30
         self.connection = pika.BlockingConnection(params)
         self.channel = self.connection.channel()
@@ -30,7 +31,9 @@ class MessageQueueService:
         self.channel.queue_declare(queue=queue_name, durable=True)
 
     def publish_message(self, queue_name: str, message: dict):
-        body = json.dumps(message)
+        body = json.dumps(
+            serialize_mongo_doc(message)
+        )
 
         print(f"[MessageQueueService] Publishing message to {queue_name}: {body}")
 
