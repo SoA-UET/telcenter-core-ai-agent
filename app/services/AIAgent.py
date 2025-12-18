@@ -87,7 +87,7 @@ class AIAgent:
                     # Fallback to vectorstore
                     print(f"[AIAgent] RAG reasoning failed, falling back to vectorstore: {e}")
                     try:
-                        context = self.rag_client.query_vectordb(inquiry)
+                        context = self.rag_client.query_vectordb(history + "\n\n" + inquiry)
                     except Exception as e2:
                         # Cannot get context, must forward to human
                         raise Exception("FORWARD")
